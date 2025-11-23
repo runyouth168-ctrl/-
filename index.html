@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 关键：防止图床防盗链 -->
     <meta name="referrer" content="no-referrer">
     <title>联盟头像消消乐</title>
     <style>
@@ -37,6 +38,61 @@
             transition: background 0.3s;
         }
 
+        /* --- 启动画面样式 (这次补全了) --- */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            background-image: inherit; 
+            background-size: cover;
+            background-position: center;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .start-logo {
+            width: 100px; height: 100px;
+            border-radius: 20px;
+            border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        .start-title {
+            font-size: 32px; font-weight: 900; letter-spacing: 2px;
+            color: #333; text-shadow: 0 2px 5px rgba(255,255,255,0.5);
+            margin-bottom: 5px;
+        }
+        .start-subtitle {
+            font-size: 16px; opacity: 0.7; margin-bottom: 60px; font-weight: 500;
+        }
+        .start-btn {
+            background: linear-gradient(135deg, #4a90e2, #00cec9);
+            color: white; border: none; padding: 16px 60px;
+            font-size: 20px; font-weight: bold; border-radius: 50px;
+            box-shadow: 0 8px 20px rgba(74, 144, 226, 0.4);
+            cursor: pointer; animation: pulse 2s infinite;
+            transition: transform 0.1s;
+        }
+        .start-btn:active { transform: scale(0.95); }
+        .start-footer { position: absolute; bottom: 30px; font-size: 12px; opacity: 0.5; }
+
+        /* 动画关键帧 */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(74, 144, 226, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 144, 226, 0); }
+        }
+
+        /* --- 主应用容器 --- */
         .app-container {
             width: 100%;
             height: 100%;
@@ -44,6 +100,8 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            opacity: 0; /* 初始隐藏，等待启动 */
+            transition: opacity 0.5s ease;
         }
 
         /* --- 1. 顶部栏 --- */
@@ -83,7 +141,7 @@
         }
         .author-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
 
-        /* --- 2. 标题 & 进度条区域 --- */
+        /* --- 2. 标题 & 进度条 --- */
         .header {
             text-align: center;
             margin-bottom: 5px;
@@ -101,10 +159,9 @@
             font-size: 13px; margin-top: 2px; opacity: 0.7; font-weight: 500;
         }
 
-        /* 👇 新增：进度条样式 */
         .level-progress-box {
-            width: 50%; /* 进度条总宽度 */
-            margin-top: 12px;
+            width: 60%; 
+            margin-top: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -116,17 +173,17 @@
         .progress-track {
             width: 100%;
             height: 8px;
-            background: rgba(0, 0, 0, 0.1); /* 轨道颜色 */
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 4px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.3);
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%); /* 渐变色 */
-            width: 20%; /* 初始宽度 */
+            background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            width: 20%;
             border-radius: 4px;
-            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性动画 */
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 0 8px rgba(255, 154, 158, 0.6);
         }
 
@@ -217,14 +274,20 @@
         .upload-btn { background: linear-gradient(135deg, #4a90e2, #0984e3); }
         .next-btn { background: linear-gradient(135deg, #2ecc71, #27ae60); }
 
+        /* 底部版权 */
         .footer-area {
-            display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 5px;
+            position: absolute;
+            bottom: 10px; 
+            width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            z-index: 10;
+            pointer-events: none;
         }
         .footer-text {
             font-size: 11px; opacity: 0.5; letter-spacing: 1px; font-weight: 500;
         }
 
-        /* --- 弹窗 --- */
+        /* --- 弹窗样式 --- */
         .modal-mask {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000;
@@ -262,11 +325,33 @@
         #game-modal p { color: #666; margin-bottom: 30px; font-size: 16px; }
         input[type=range] { accent-color: var(--primary-color); }
         .font-select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; font-size: 13px; color: #333; outline: none; }
+
+        /* 上传提示弹窗样式 */
+        .colorful-tip {
+            font-size: 15px; line-height: 1.6; color: #444; margin: 10px 0 20px 0; text-align: center;
+        }
+        .tip-highlight { color: #ff6b6b; font-weight: bold; }
+        .checkbox-container {
+            display: flex; justify-content: center; align-items: center; margin-bottom: 25px; font-size: 14px; color: #666; cursor: pointer;
+        }
+        .checkbox-container input { width: 18px; height: 18px; margin-right: 8px; accent-color: var(--primary-color); }
+        .modal-actions { display: flex; gap: 15px; }
+        .btn-cancel { background: #eee; color: #666; flex: 1; padding: 12px 0; border-radius: 12px; border: none; font-weight: bold; cursor: pointer;}
+        .btn-confirm { background: var(--primary-color); color: white; flex: 1; padding: 12px 0; border-radius: 12px; border: none; font-weight: bold; cursor: pointer;}
     </style>
 </head>
 <body>
 
-<div class="app-container">
+<!-- 👇 启动画面 (Start Screen) -->
+<div id="start-screen">
+    <img src="https://free.picui.cn/free/2025/11/23/69221b2722d70.jpg" class="start-logo">
+    <div class="start-title">联盟头像消消乐</div>
+    <div class="start-subtitle">一起🐏了个🐏 • 休闲益智</div>
+    <button class="start-btn" onclick="enterGame()">开始游戏</button>
+    <div class="start-footer">@清晨制作</div>
+</div>
+
+<div class="app-container" id="app-container">
     <div class="top-bar">
         <div class="settings-btn" onclick="openSettings()">⚙️</div>
         <div class="author-badge">
@@ -279,7 +364,7 @@
         <div class="title" id="ui-title">联盟头像消消乐😆</div>
         <div class="subtitle" id="ui-subtitle">大家一起🐏了个🐏</div>
         
-        <!-- 👇 新增：关卡进度条 -->
+        <!-- 关卡进度条 -->
         <div class="level-progress-box">
             <div class="level-text" id="level-display">第 1/5 关</div>
             <div class="progress-track">
@@ -310,15 +395,37 @@
 
         <div class="action-bar">
             <button class="btn reset-btn" onclick="resetLevel()">🔄 重置本关</button>
-            <label class="btn upload-btn">
-                📸 上传头像
-                <input type="file" id="file-input" accept="image/*" style="display:none">
-            </label>
+            <button class="btn upload-btn" onclick="checkUploadTip()">📸 上传头像</button>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
         </div>
+    </div>
+    
+    <div class="footer-area">
+        <span class="footer-text" id="footer-1">本游戏由清晨独立制作</span>
+        <span class="footer-text" id="footer-2">仅供娱乐 • 请勿沉迷</span>
+    </div>
+</div>
 
-        <div class="footer-area">
-            <span class="footer-text" id="footer-1">本游戏由清晨独立制作</span>
-            <span class="footer-text" id="footer-2">仅供娱乐 • 请勿沉迷</span>
+<!-- 弹窗: 上传提示 -->
+<div class="modal-mask" id="upload-tip-modal">
+    <div class="modal-content">
+        <div class="panel-header">
+            <h3>📸 温馨提示 ✨</h3>
+        </div>
+        <div class="colorful-tip">
+            只要上传 <span class="tip-highlight">自己的头像</span> 🙎‍♂️<br>
+            或者 <span class="tip-highlight">朋友的照片</span> 👩‍❤️‍👩<br>
+            就可以加入到元素池中哦！<br>
+            <br>
+            快来定制专属游戏，一起<span class="tip-highlight">开心消消乐</span>吧！🎉
+        </div>
+        <label class="checkbox-container">
+            <input type="checkbox" id="dont-show-again"> 
+            <span>我知道了，不再提示</span>
+        </label>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeUploadTip()">取消</button>
+            <button class="btn-confirm" onclick="confirmUpload()">确定上传</button>
         </div>
     </div>
 </div>
@@ -362,12 +469,19 @@
         </div>
 
         <div class="group-title">📐 难度与布局</div>
+        
+        <div class="setting-item">
+            <span>元素种类: <span id="val-typeCount">15</span>种</span>
+            <input type="range" id="inp-typeCount" min="3" max="25" step="1" value="15" oninput="updateRangeVal(this)">
+        </div>
+
         <div class="setting-item">
             <span>图标大小: <span id="val-cardSize">13</span>vw</span>
             <input type="range" id="inp-cardSize" min="8" max="18" step="1" value="13" oninput="updateRangeVal(this)">
         </div>
         <div style="font-size:12px; color:#999; margin-top:10px;">
-            * 当前处于闯关模式，卡片数量由关卡决定。
+            * 当前处于闯关模式，卡片数量由关卡决定。<br>
+            * 元素种类越少，越容易消除哦！
         </div>
 
         <div class="settings-footer">
@@ -381,7 +495,7 @@
     <div class="modal-content" id="game-modal">
         <h2 id="res-title"></h2>
         <p id="res-desc"></p>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; justify-content: center;">
             <button class="btn reset-btn" onclick="resetLevel()">重玩本关</button>
             <button class="btn next-btn" id="next-level-btn" onclick="nextLevel()" style="display:none">下一关 ➡️</button>
         </div>
@@ -407,7 +521,6 @@
         'https://youke1.picui.cn/s1/2025/11/23/692217d700eef.png'
     ];
 
-    // --- 关卡配置 ---
     const LEVEL_CONFIGS = {
         1: { cardCount: 18, density: 2, slotMax: 7 },
         2: { cardCount: 30, density: 3, slotMax: 7 },
@@ -427,6 +540,7 @@
             textColor: '#333333',
             bgImage: '', 
             cardSize: 13, 
+            typeCount: 15, 
             fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif'
         }
     };
@@ -436,9 +550,26 @@
 
     function onLoad() {
         loadConfig();
-        initGame();
+        // 这里先不initGame，等点击开始后再init
+        // 但为了背景设置生效，先applyTheme
+        applyTheme();
         document.getElementById('file-input').addEventListener('change', handleUpload);
         document.getElementById('bg-input').addEventListener('change', handleBgUpload);
+    }
+
+    // --- 启动游戏 ---
+    window.enterGame = function() {
+        const startScreen = document.getElementById('start-screen');
+        const appContainer = document.getElementById('app-container');
+        
+        startScreen.style.opacity = '0';
+        startScreen.style.transform = 'scale(1.1)';
+        appContainer.style.opacity = '1';
+        
+        setTimeout(() => {
+            startScreen.style.display = 'none';
+            initGame(); // 点击开始后才初始化游戏
+        }, 500); 
     }
 
     function loadConfig() {
@@ -451,10 +582,8 @@
     function applyTheme() {
         document.body.style.backgroundColor = state.config.bgColor;
         document.body.style.backgroundImage = state.config.bgImage ? `url(${state.config.bgImage})` : 'none';
-        
         document.documentElement.style.setProperty('--font-family', state.config.fontFamily);
         document.documentElement.style.setProperty('--card-size', state.config.cardSize + 'vw');
-
         const color = state.config.textColor;
         document.documentElement.style.setProperty('--text-color', color);
         ['ui-title', 'ui-subtitle', 'footer-1', 'footer-2'].forEach(id => {
@@ -471,24 +600,26 @@
         gameArea.innerHTML = '';
         renderDock();
 
-        // 更新进度条 UI
         document.getElementById('level-display').innerText = `第 ${state.currentLevel}/5 关`;
         const pct = (state.currentLevel / 5) * 100;
         document.getElementById('level-fill').style.width = pct + '%';
 
-        // 读取当前关卡配置
         const levelConf = LEVEL_CONFIGS[state.currentLevel] || LEVEL_CONFIGS[1];
         
-        let fullPool = [...LOCKED_ASSETS, ...state.userImages];
+        let fullPool = [...state.userImages, ...LOCKED_ASSETS];
+        let limit = parseInt(state.config.typeCount) || 15;
+        if(limit < 3) limit = 3; 
+        let activePool = fullPool.slice(0, limit);
+
         let count = levelConf.cardCount;
-        
         let groupCount = count / 3;
         let tempCards = [];
         
         for(let i=0; i<groupCount; i++) {
-            let type = fullPool[i % fullPool.length];
+            let typeIndex = i % activePool.length;
+            let type = activePool[typeIndex];
             for(let k=0; k<3; k++) {
-                tempCards.push({ type: type, matchId: i });
+                tempCards.push({ type: type, matchId: typeIndex });
             }
         }
         tempCards.sort(() => Math.random() - 0.5);
@@ -503,7 +634,6 @@
             let key = `${gx},${gy}`;
             let z = i + 1;
 
-            // 完美居中算法
             let left = (gx * 10) - 1.5 + (Math.random() - 0.5) * 5;
             let top = 2 + (gy * 8) + (Math.random()-0.5)*5;
 
@@ -526,20 +656,16 @@
         gameArea.innerHTML = '';
         state.cards.forEach(c => {
             if(c.inDock || c.cleared) return;
-
             let el = document.createElement('div');
             el.className = 'card';
             el.style.left = c.left + '%';
             el.style.top = c.top + '%';
             el.style.zIndex = c.z;
             el.dataset.id = c.id;
-            
             if(c.disabled) el.classList.add('disabled');
-
             let img = document.createElement('img');
             img.src = c.type;
             el.appendChild(img);
-
             el.onclick = () => onCardClick(c.id);
             gameArea.appendChild(el);
         });
@@ -548,11 +674,9 @@
     function updateOcclusion() {
         const limit = 10;
         state.cards.forEach(c => c.disabled = false);
-
         for(let i=0; i<state.cards.length; i++) {
             let up = state.cards[i];
             if(up.inDock || up.cleared) continue;
-
             for(let j=0; j<state.cards.length; j++) {
                 let down = state.cards[j];
                 if(i===j || down.inDock || down.cleared) continue;
@@ -569,18 +693,13 @@
     function onCardClick(id) {
         let idx = state.cards.findIndex(c => c.id === id);
         let card = state.cards[idx];
-        
         let currentSlotMax = LEVEL_CONFIGS[state.currentLevel].slotMax;
-        
         if(!card || card.disabled || state.dock.length >= currentSlotMax) return;
-
         card.inDock = true;
         state.dock.push(JSON.parse(JSON.stringify(card))); 
-        
         renderBoard();
         renderDock();
         updateOcclusion();
-
         setTimeout(checkMatch, 250);
     }
 
@@ -610,9 +729,7 @@
                 break;
             }
         }
-
         let currentSlotMax = LEVEL_CONFIGS[state.currentLevel].slotMax;
-
         if(matchId !== null) {
             let removed = 0;
             let newDock = [];
@@ -627,7 +744,6 @@
             });
             state.dock = newDock;
             renderDock();
-            
             let active = state.cards.filter(c => !c.cleared);
             if(active.length === 0) showResult(true);
         } else {
@@ -640,13 +756,11 @@
         let success = false;
         let cards = state.cards;
         let dock = state.dock;
-
         if(type === 'undo' && dock.length > 0) {
             let last = dock.pop();
             let idx = cards.findIndex(c => c.id === last.id);
             if(idx > -1) { cards[idx].inDock = false; success = true; }
-        }
-        else if(type === 'shuffle') {
+        } else if(type === 'shuffle') {
             let indices = [];
             cards.forEach((c,i) => { if(!c.inDock && !c.cleared) indices.push(i); });
             if(indices.length > 0) {
@@ -658,8 +772,7 @@
                 });
                 success = true;
             }
-        }
-        else if(type === 'remove' && dock.length > 0) {
+        } else if(type === 'remove' && dock.length > 0) {
             let count = Math.min(3, dock.length);
             for(let i=0; i<count; i++) {
                 let c = dock.shift();
@@ -672,7 +785,6 @@
             }
             success = true;
         }
-
         if(success) {
             state.tools[type]--;
             updateToolUI();
@@ -689,7 +801,6 @@
     function showResult(win) {
         document.getElementById('result-modal').style.display = 'flex';
         const btnNext = document.getElementById('next-level-btn');
-        
         if(win) {
             document.getElementById('res-title').innerText = '🎉 恭喜通过！';
             if(state.currentLevel < 5) {
@@ -706,10 +817,7 @@
         }
     }
 
-    window.resetLevel = function() {
-        initGame(); 
-    }
-
+    window.resetLevel = function() { initGame(); }
     window.nextLevel = function() {
         if(state.currentLevel < 5) {
             state.currentLevel++;
@@ -717,11 +825,31 @@
         }
     }
 
+    // --- 上传提示弹窗逻辑 ---
+    window.checkUploadTip = function() {
+        const hideTip = localStorage.getItem('hideUploadTip');
+        if(hideTip === 'true') {
+            document.getElementById('file-input').click();
+        } else {
+            document.getElementById('upload-tip-modal').style.display = 'flex';
+        }
+    }
+    window.confirmUpload = function() {
+        const checkbox = document.getElementById('dont-show-again');
+        if(checkbox.checked) localStorage.setItem('hideUploadTip', 'true');
+        document.getElementById('upload-tip-modal').style.display = 'none';
+        document.getElementById('file-input').click();
+    }
+    window.closeUploadTip = function() {
+        document.getElementById('upload-tip-modal').style.display = 'none';
+    }
+
     window.openSettings = function() { document.getElementById('settings-modal').style.display = 'flex'; syncSettingsUI(); }
     window.saveSettings = function() {
         document.getElementById('settings-modal').style.display = 'none';
         localStorage.setItem('qingchen_game_conf', JSON.stringify(state.config));
         applyTheme();
+        initGame();
     }
     window.setConfigColor = function(color) { state.config.bgColor = color; applyTheme(); }
     window.updateFont = function(el) { state.config.fontFamily = el.value; applyTheme(); }
@@ -734,20 +862,27 @@
         }
     }
     function syncSettingsUI() {
-        document.getElementById('inp-cardSize').value = state.config.cardSize;
-        document.getElementById('val-cardSize').innerText = state.config.cardSize;
+        ['cardCount', 'slotMax', 'density', 'cardSize', 'typeCount'].forEach(k => {
+            let el = document.getElementById('inp-'+k);
+            if(el) {
+                el.value = state.config[k];
+                document.getElementById('val-'+k).innerText = state.config[k];
+            }
+        });
         document.getElementById('inp-fontFamily').value = state.config.fontFamily;
     }
+    
     function handleUpload(e) {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(ev) {
             state.userImages.unshift(ev.target.result);
-            alert('添加成功');
+            alert('添加成功，图片已加入游戏！');
             initGame();
         };
         reader.readAsDataURL(file);
+        e.target.value = ''; 
     }
     function handleBgUpload(e) {
         const file = e.target.files[0];
