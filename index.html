@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <title>联盟头像消消乐</title>
+    <style>
+        :root {
+            --bg-color: #c3fe8b;
+            --text-color: #333;
+            --primary-color: #4a90e2;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --shadow-sm: 0 4px 12px rgba(0,0,0,0.08);
+            --card-size: 13vw;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            background-size: cover;
+            background-position: center;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.3s;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 1. 顶部栏 --- */
+        .top-bar {
+            padding: 50px 20px 5px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .settings-btn {
+            width: 40px; height: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .settings-btn:active { transform: scale(0.9); }
+
+        .author-badge {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 4px 12px 4px 6px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--glass-border);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .author-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+
+        /* --- 2. 标题 & 进度条区域 --- */
+        .header {
+            text-align: center;
+            margin-bottom: 5px;
+            flex-shrink: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .title {
+            font-size: 22px; font-weight: 800; letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            font-size: 13px; margin-top: 2px; opacity: 0.7; font-weight: 500;
+        }
+
+        /* 👇 新增：进度条样式 */
+        .level-progress-box {
+            width: 50%; /* 进度条总宽度 */
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .level-text {
+            font-size: 12px; font-weight: bold; color: #555; letter-spacing: 1px;
+        }
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.1); /* 轨道颜色 */
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%); /* 渐变色 */
+            width: 20%; /* 初始宽度 */
+            border-radius: 4px;
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性动画 */
+            box-shadow: 0 0 8px rgba(255, 154, 158, 0.6);
+        }
+
+        /* --- 3. 游戏主舞台 --- */
+        #game-area {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            margin: 5px 0;
+            overflow: hidden; 
+        }
+
+        .card {
+            width: var(--card-size);
+            height: var(--card-size);
+            background-color: white;
+            border-radius: 10px;
+            position: absolute;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255,255,255,0.8);
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        
+        .card.disabled::after {
+            content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); pointer-events: none;
+        }
+
+        /* --- 4. 底部面板 --- */
+        .bottom-panel {
+            width: 100%;
+            padding: 0 20px 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .tools-bar { display: flex; justify-content: center; gap: 30px; }
+        .tool-btn {
+            width: 50px; height: 50px; border-radius: 50%; 
+            background: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            position: relative; cursor: pointer; border: none;
+            transition: transform 0.1s;
+        }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn span { font-size: 10px; color: #666; margin-top: -2px; font-weight: bold;}
+        .tool-badge {
+            position: absolute; top: -2px; right: -2px; background: #ff4757; color: white;
+            width: 18px; height: 18px; font-size: 10px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            border: 2px solid white;
+        }
+
+        #dock-container {
+            width: 100%;
+            height: calc(var(--card-size) + 16px);
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+            display: flex; align-items: center; justify-content: center;
+            gap: 4px;
+        }
+        #dock-container .card {
+            position: static; margin: 0; transform: scale(0.95);
+            box-shadow: none; border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .action-bar { display: flex; gap: 15px; }
+        .btn {
+            flex: 1; padding: 12px 0; border-radius: 12px; border: none; 
+            font-weight: 700; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
+            color: white; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.8; }
+        .reset-btn { background: linear-gradient(135deg, #ff7675, #d63031); }
+        .upload-btn { background: linear-gradient(135deg, #4a90e2, #0984e3); }
+        .next-btn { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+
+        .footer-area {
+            display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 5px;
+        }
+        .footer-text {
+            font-size: 11px; opacity: 0.5; letter-spacing: 1px; font-weight: 500;
+        }
+
+        /* --- 弹窗 --- */
+        .modal-mask {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1}}
+
+        .modal-content {
+            background: white; width: 85%; padding: 25px; border-radius: 24px;
+            max-height: 80vh; overflow-y: auto; position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: scale(0.95); animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popUp { to{transform: scale(1)} }
+
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0;
+        }
+        .panel-header h3 { margin: 0; font-size: 18px; }
+        .group-title {
+            font-size: 13px; color: #888; margin: 20px 0 10px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .setting-item { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px;}
+        .color-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;}
+        
+        .settings-footer {
+            margin-top: 30px; padding-top: 20px; border-top: 1px dashed #eee;
+            text-align: center; font-size: 13px; color: #999; font-weight: 500;
+        }
+
+        #game-modal { text-align: center; }
+        #game-modal h2 { margin: 10px 0; font-size: 28px; }
+        #game-modal p { color: #666; margin-bottom: 30px; font-size: 16px; }
+        input[type=range] { accent-color: var(--primary-color); }
+        .font-select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; font-size: 13px; color: #333; outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="settings-btn" onclick="openSettings()">⚙️</div>
+        <div class="author-badge">
+            <img src="https://free.picui.cn/free/2025/11/23/69221b2722d70.jpg" class="author-icon">
+            <span>清晨制作</span>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="title" id="ui-title">联盟头像消消乐😆</div>
+        <div class="subtitle" id="ui-subtitle">大家一起🐏了个🐏</div>
+        
+        <!-- 👇 新增：关卡进度条 -->
+        <div class="level-progress-box">
+            <div class="level-text" id="level-display">第 1/5 关</div>
+            <div class="progress-track">
+                <div class="progress-fill" id="level-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-area"></div>
+
+    <div class="bottom-panel">
+        <div class="tools-bar">
+            <button class="tool-btn" onclick="useTool('undo')">
+                <span>↩️</span><span>撤销</span>
+                <div class="tool-badge" id="badge-undo">1</div>
+            </button>
+            <button class="tool-btn" onclick="useTool('shuffle')">
+                <span>🔀</span><span>洗牌</span>
+                <div class="tool-badge" id="badge-shuffle">1</div>
+            </button>
+            <button class="tool-btn" onclick="useTool('remove')">
+                <span>📤</span><span>移出</span>
+                <div class="tool-badge" id="badge-remove">1</div>
+            </button>
+        </div>
+
+        <div id="dock-container"></div>
+
+        <div class="action-bar">
+            <button class="btn reset-btn" onclick="resetLevel()">🔄 重置本关</button>
+            <label class="btn upload-btn">
+                📸 上传头像
+                <input type="file" id="file-input" accept="image/*" style="display:none">
+            </label>
+        </div>
+
+        <div class="footer-area">
+            <span class="footer-text" id="footer-1">本游戏由清晨独立制作</span>
+            <span class="footer-text" id="footer-2">仅供娱乐 • 请勿沉迷</span>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗: 设置 -->
+<div class="modal-mask" id="settings-modal">
+    <div class="modal-content">
+        <div class="panel-header">
+            <h3>🎨 游戏设置</h3>
+            <button class="btn" style="background:#2ecc71; width:auto; padding:0 20px; font-size:13px;" onclick="saveSettings()">保存</button>
+        </div>
+
+        <div class="group-title">🎨 界面美化</div>
+        
+        <div class="setting-item">
+            <span>背景颜色</span>
+            <div style="display:flex; gap:10px;">
+                <div class="color-circle" style="background:#c3fe8b" onclick="setConfigColor('#c3fe8b')"></div>
+                <div class="color-circle" style="background:#ff7675" onclick="setConfigColor('#ff7675')"></div>
+                <div class="color-circle" style="background:#74b9ff" onclick="setConfigColor('#74b9ff')"></div>
+                <div class="color-circle" style="background:#dfe6e9" onclick="setConfigColor('#dfe6e9')"></div>
+            </div>
+        </div>
+
+        <div class="setting-item">
+            <span>字体风格</span>
+            <select class="font-select" id="inp-fontFamily" onchange="updateFont(this)">
+                <option value='-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif'>系统默认</option>
+                <option value='"KaiTi", "STKaiti", "楷体", serif'>可爱楷体</option>
+                <option value='"Courier New", Courier, monospace'>复古打字机</option>
+                <option value='"Songti SC", "SimSun", serif'>优雅宋体</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
+            <span>自定义背景</span>
+            <label class="btn" style="background:transparent; border:1px solid #4a90e2; color:#4a90e2; width:auto; padding:5px 15px; font-size:12px;">
+                选择图片
+                <input type="file" id="bg-input" accept="image/*" style="display:none">
+            </label>
+        </div>
+
+        <div class="group-title">📐 难度与布局</div>
+        <div class="setting-item">
+            <span>图标大小: <span id="val-cardSize">13</span>vw</span>
+            <input type="range" id="inp-cardSize" min="8" max="18" step="1" value="13" oninput="updateRangeVal(this)">
+        </div>
+        <div style="font-size:12px; color:#999; margin-top:10px;">
+            * 当前处于闯关模式，卡片数量由关卡决定。
+        </div>
+
+        <div class="settings-footer">
+            合作微信：qingchu16899
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗: 结算 -->
+<div class="modal-mask" id="result-modal">
+    <div class="modal-content" id="game-modal">
+        <h2 id="res-title"></h2>
+        <p id="res-desc"></p>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn reset-btn" onclick="resetLevel()">重玩本关</button>
+            <button class="btn next-btn" id="next-level-btn" onclick="nextLevel()" style="display:none">下一关 ➡️</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const LOCKED_ASSETS = [
+        'https://free.picui.cn/free/2025/11/23/69221b26cf062.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692210873bdf4.png',
+        'https://youke1.picui.cn/s1/2025/11/23/69221133a3118.png',
+        'https://youke1.picui.cn/s1/2025/11/23/69221280affff.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692212f2555f0.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692213b042184.png',
+        'https://youke1.picui.cn/s1/2025/11/23/69221400bc67b.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692214ae8dfeb.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692214d96dc0b.jpg',
+        'https://youke1.picui.cn/s1/2025/11/23/69221557c7d13.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692215c24f095.png',
+        'https://youke1.picui.cn/s1/2025/11/23/6922165ce244a.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692216e0ece64.png',
+        'https://youke1.picui.cn/s1/2025/11/23/69221771c4158.png',
+        'https://youke1.picui.cn/s1/2025/11/23/692217d700eef.png'
+    ];
+
+    // --- 关卡配置 ---
+    const LEVEL_CONFIGS = {
+        1: { cardCount: 18, density: 2, slotMax: 7 },
+        2: { cardCount: 30, density: 3, slotMax: 7 },
+        3: { cardCount: 42, density: 4, slotMax: 7 },
+        4: { cardCount: 60, density: 6, slotMax: 7 },
+        5: { cardCount: 81, density: 8, slotMax: 6 }
+    };
+
+    let state = {
+        cards: [],
+        dock: [],
+        userImages: [],
+        tools: { undo: 1, shuffle: 1, remove: 1 },
+        currentLevel: 1,
+        config: {
+            bgColor: '#c3fe8b',
+            textColor: '#333333',
+            bgImage: '', 
+            cardSize: 13, 
+            fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif'
+        }
+    };
+
+    const gameArea = document.getElementById('game-area');
+    const dockContainer = document.getElementById('dock-container');
+
+    function onLoad() {
+        loadConfig();
+        initGame();
+        document.getElementById('file-input').addEventListener('change', handleUpload);
+        document.getElementById('bg-input').addEventListener('change', handleBgUpload);
+    }
+
+    function loadConfig() {
+        const saved = localStorage.getItem('qingchen_game_conf');
+        if(saved) state.config = { ...state.config, ...JSON.parse(saved) };
+        applyTheme();
+        syncSettingsUI();
+    }
+
+    function applyTheme() {
+        document.body.style.backgroundColor = state.config.bgColor;
+        document.body.style.backgroundImage = state.config.bgImage ? `url(${state.config.bgImage})` : 'none';
+        
+        document.documentElement.style.setProperty('--font-family', state.config.fontFamily);
+        document.documentElement.style.setProperty('--card-size', state.config.cardSize + 'vw');
+
+        const color = state.config.textColor;
+        document.documentElement.style.setProperty('--text-color', color);
+        ['ui-title', 'ui-subtitle', 'footer-1', 'footer-2'].forEach(id => {
+            document.getElementById(id).style.color = color;
+        });
+    }
+
+    function initGame() {
+        state.cards = [];
+        state.dock = [];
+        state.tools = { undo: 1, shuffle: 1, remove: 1 };
+        updateToolUI();
+        document.getElementById('result-modal').style.display = 'none';
+        gameArea.innerHTML = '';
+        renderDock();
+
+        // 更新进度条 UI
+        document.getElementById('level-display').innerText = `第 ${state.currentLevel}/5 关`;
+        const pct = (state.currentLevel / 5) * 100;
+        document.getElementById('level-fill').style.width = pct + '%';
+
+        // 读取当前关卡配置
+        const levelConf = LEVEL_CONFIGS[state.currentLevel] || LEVEL_CONFIGS[1];
+        
+        let fullPool = [...LOCKED_ASSETS, ...state.userImages];
+        let count = levelConf.cardCount;
+        
+        let groupCount = count / 3;
+        let tempCards = [];
+        
+        for(let i=0; i<groupCount; i++) {
+            let type = fullPool[i % fullPool.length];
+            for(let k=0; k<3; k++) {
+                tempCards.push({ type: type, matchId: i });
+            }
+        }
+        tempCards.sort(() => Math.random() - 0.5);
+
+        let density = levelConf.density;
+
+        tempCards.forEach((item, i) => {
+            let range = 8 - Math.floor(density / 2);
+            let offsetBase = Math.floor(density / 2);
+            let gx = Math.floor(Math.random() * range) + offsetBase;
+            let gy = Math.floor(Math.random() * range) + 1;
+            let key = `${gx},${gy}`;
+            let z = i + 1;
+
+            // 完美居中算法
+            let left = (gx * 10) - 1.5 + (Math.random() - 0.5) * 5;
+            let top = 2 + (gy * 8) + (Math.random()-0.5)*5;
+
+            state.cards.push({
+                id: i,
+                type: item.type,
+                matchId: item.matchId,
+                left, top, z,
+                inDock: false,
+                cleared: false,
+                disabled: false
+            });
+        });
+
+        renderBoard();
+        updateOcclusion();
+    }
+
+    function renderBoard() {
+        gameArea.innerHTML = '';
+        state.cards.forEach(c => {
+            if(c.inDock || c.cleared) return;
+
+            let el = document.createElement('div');
+            el.className = 'card';
+            el.style.left = c.left + '%';
+            el.style.top = c.top + '%';
+            el.style.zIndex = c.z;
+            el.dataset.id = c.id;
+            
+            if(c.disabled) el.classList.add('disabled');
+
+            let img = document.createElement('img');
+            img.src = c.type;
+            el.appendChild(img);
+
+            el.onclick = () => onCardClick(c.id);
+            gameArea.appendChild(el);
+        });
+    }
+
+    function updateOcclusion() {
+        const limit = 10;
+        state.cards.forEach(c => c.disabled = false);
+
+        for(let i=0; i<state.cards.length; i++) {
+            let up = state.cards[i];
+            if(up.inDock || up.cleared) continue;
+
+            for(let j=0; j<state.cards.length; j++) {
+                let down = state.cards[j];
+                if(i===j || down.inDock || down.cleared) continue;
+                if(up.z > down.z) {
+                    let dx = Math.abs(up.left - down.left);
+                    let dy = Math.abs(up.top - down.top);
+                    if(dx < limit && dy < limit) down.disabled = true;
+                }
+            }
+        }
+        renderBoard(); 
+    }
+
+    function onCardClick(id) {
+        let idx = state.cards.findIndex(c => c.id === id);
+        let card = state.cards[idx];
+        
+        let currentSlotMax = LEVEL_CONFIGS[state.currentLevel].slotMax;
+        
+        if(!card || card.disabled || state.dock.length >= currentSlotMax) return;
+
+        card.inDock = true;
+        state.dock.push(JSON.parse(JSON.stringify(card))); 
+        
+        renderBoard();
+        renderDock();
+        updateOcclusion();
+
+        setTimeout(checkMatch, 250);
+    }
+
+    function renderDock() {
+        dockContainer.innerHTML = '';
+        state.dock.forEach(c => {
+            let el = document.createElement('div');
+            el.className = 'card';
+            el.style.position = 'static';
+            el.style.margin = '0';
+            let img = document.createElement('img');
+            img.src = c.type;
+            el.appendChild(img);
+            dockContainer.appendChild(el);
+        });
+    }
+
+    function checkMatch() {
+        let dock = state.dock;
+        let matchId = null;
+        let counts = {};
+        for(let i=0; i<dock.length; i++) {
+            let mid = dock[i].matchId;
+            counts[mid] = (counts[mid] || 0) + 1;
+            if(counts[mid] >= 3) {
+                matchId = mid;
+                break;
+            }
+        }
+
+        let currentSlotMax = LEVEL_CONFIGS[state.currentLevel].slotMax;
+
+        if(matchId !== null) {
+            let removed = 0;
+            let newDock = [];
+            dock.forEach(c => {
+                if(c.matchId == matchId && removed < 3) {
+                    removed++;
+                    let originIdx = state.cards.findIndex(x => x.id === c.id);
+                    if(originIdx > -1) state.cards[originIdx].cleared = true;
+                } else {
+                    newDock.push(c);
+                }
+            });
+            state.dock = newDock;
+            renderDock();
+            
+            let active = state.cards.filter(c => !c.cleared);
+            if(active.length === 0) showResult(true);
+        } else {
+            if(dock.length >= currentSlotMax) showResult(false);
+        }
+    }
+
+    window.useTool = function(type) {
+        if(state.tools[type] <= 0) { alert('次数用完啦'); return; }
+        let success = false;
+        let cards = state.cards;
+        let dock = state.dock;
+
+        if(type === 'undo' && dock.length > 0) {
+            let last = dock.pop();
+            let idx = cards.findIndex(c => c.id === last.id);
+            if(idx > -1) { cards[idx].inDock = false; success = true; }
+        }
+        else if(type === 'shuffle') {
+            let indices = [];
+            cards.forEach((c,i) => { if(!c.inDock && !c.cleared) indices.push(i); });
+            if(indices.length > 0) {
+                let items = indices.map(i => ({ type: cards[i].type, matchId: cards[i].matchId }));
+                items.sort(() => Math.random() - 0.5);
+                indices.forEach((index, i) => {
+                    cards[index].type = items[i].type;
+                    cards[index].matchId = items[i].matchId;
+                });
+                success = true;
+            }
+        }
+        else if(type === 'remove' && dock.length > 0) {
+            let count = Math.min(3, dock.length);
+            for(let i=0; i<count; i++) {
+                let c = dock.shift();
+                let idx = cards.findIndex(x => x.id === c.id);
+                if(idx > -1) {
+                    cards[idx].inDock = false;
+                    cards[idx].left = 10 + Math.random()*70;
+                    cards[idx].top = 10 + Math.random()*50;
+                }
+            }
+            success = true;
+        }
+
+        if(success) {
+            state.tools[type]--;
+            updateToolUI();
+            renderBoard(); renderDock(); updateOcclusion();
+        }
+    }
+
+    function updateToolUI() {
+        document.getElementById('badge-undo').innerText = state.tools.undo;
+        document.getElementById('badge-shuffle').innerText = state.tools.shuffle;
+        document.getElementById('badge-remove').innerText = state.tools.remove;
+    }
+
+    function showResult(win) {
+        document.getElementById('result-modal').style.display = 'flex';
+        const btnNext = document.getElementById('next-level-btn');
+        
+        if(win) {
+            document.getElementById('res-title').innerText = '🎉 恭喜通过！';
+            if(state.currentLevel < 5) {
+                document.getElementById('res-desc').innerText = '太强了！准备好挑战下一关了吗？';
+                btnNext.style.display = 'inline-block';
+            } else {
+                document.getElementById('res-desc').innerText = '🏆 你已通关全部关卡！膜拜大神！';
+                btnNext.style.display = 'none';
+            }
+        } else {
+            document.getElementById('res-title').innerText = '😭 挑战失败';
+            document.getElementById('res-desc').innerText = '槽位已满，请重新来过';
+            btnNext.style.display = 'none';
+        }
+    }
+
+    window.resetLevel = function() {
+        initGame(); 
+    }
+
+    window.nextLevel = function() {
+        if(state.currentLevel < 5) {
+            state.currentLevel++;
+            initGame();
+        }
+    }
+
+    window.openSettings = function() { document.getElementById('settings-modal').style.display = 'flex'; syncSettingsUI(); }
+    window.saveSettings = function() {
+        document.getElementById('settings-modal').style.display = 'none';
+        localStorage.setItem('qingchen_game_conf', JSON.stringify(state.config));
+        applyTheme();
+    }
+    window.setConfigColor = function(color) { state.config.bgColor = color; applyTheme(); }
+    window.updateFont = function(el) { state.config.fontFamily = el.value; applyTheme(); }
+    window.updateRangeVal = function(el) {
+        let key = el.id.replace('inp-', '');
+        if(key === 'cardSize') {
+            state.config[key] = parseInt(el.value);
+            document.getElementById('val-'+key).innerText = el.value;
+            applyTheme();
+        }
+    }
+    function syncSettingsUI() {
+        document.getElementById('inp-cardSize').value = state.config.cardSize;
+        document.getElementById('val-cardSize').innerText = state.config.cardSize;
+        document.getElementById('inp-fontFamily').value = state.config.fontFamily;
+    }
+    function handleUpload(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.userImages.unshift(ev.target.result);
+            alert('添加成功');
+            initGame();
+        };
+        reader.readAsDataURL(file);
+    }
+    function handleBgUpload(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.config.bgImage = ev.target.result;
+            applyTheme();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    onLoad();
+</script>
+</body>
+</html>
